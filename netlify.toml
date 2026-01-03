@@ -1,0 +1,15 @@
+[build]
+  command = "pip install --only-binary :all: -r requirements.txt"
+  publish = "."
+  functions = "netlify/functions"
+
+[build.environment]
+  PYTHON_VERSION = "3.10"  # Используйте 3.10 вместо 3.11
+  PIP_VERSION = "23.3.1"
+
+# Установите Rust через Nix
+[[plugins]]
+  package = "netlify-plugin-rust"
+  
+[build.processing]
+  skip_processing = true
