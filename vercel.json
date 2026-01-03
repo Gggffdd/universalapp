@@ -1,35 +1,34 @@
 {
+  "version": 2,
   "builds": [
     {
-      "src": "bot/web_app.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "50mb"
-      }
+      "src": "src/main.py",
+      "use": "@vercel/python"
     },
     {
-      "src": "webapp/**",
+      "src": "static/**",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     {
-      "src": "/webapp/(.*)",
-      "dest": "/webapp/$1"
+      "src": "/web_app",
+      "dest": "/static/web_app.html"
+    },
+    {
+      "src": "/webhook",
+      "dest": "/src/main.py",
+      "methods": ["POST"]
     },
     {
       "src": "/(.*)",
-      "dest": "/bot/web_app.py"
+      "dest": "/src/main.py"
     }
   ],
   "env": {
-    "PYTHON_VERSION": "3.11",
-    "DATABASE_URL": "sqlite:///universal_exchange.db"
-  },
-  "functions": {
-    "bot/web_app.py": {
-      "maxDuration": 30,
-      "memory": 1024
-    }
+    "PYTHON_VERSION": "3.9",
+    "BOT_TOKEN": "@bot-token",
+    "ADMIN_ID": "@admin-id",
+    "CRYPTO_BOT_API_KEY": "@crypto-bot-api-key"
   }
 }
