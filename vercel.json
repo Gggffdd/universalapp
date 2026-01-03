@@ -1,55 +1,35 @@
 {
   "builds": [
     {
-      "src": "api/bot.py",
-      "use": "@vercel/python"
+      "src": "bot/web_app.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "50mb"
+      }
     },
     {
-      "src": "api/webapp.py",
-      "use": "@vercel/python"
-    },
-    {
-      "src": "web/**",
+      "src": "webapp/**",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     {
-      "src": "/",
-      "dest": "/web/index.html"
+      "src": "/webapp/(.*)",
+      "dest": "/webapp/$1"
     },
     {
-      "src": "/web/(.*)",
-      "dest": "/web/$1"
-    },
-    {
-      "src": "/bot",
-      "dest": "/api/bot.py"
-    },
-    {
-      "src": "/webapp",
-      "dest": "/api/webapp.py"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/bot.py"
+      "src": "/(.*)",
+      "dest": "/bot/web_app.py"
     }
   ],
   "env": {
-    "PYTHON_VERSION": "3.11"
+    "PYTHON_VERSION": "3.11",
+    "DATABASE_URL": "sqlite:///universal_exchange.db"
   },
   "functions": {
-    "api/bot.py": {
-      "maxDuration": 60,
-      "memory": 1024
-    },
-    "api/webapp.py": {
+    "bot/web_app.py": {
       "maxDuration": 30,
-      "memory": 512
+      "memory": 1024
     }
-  },
-  "github": {
-    "enabled": true,
-    "silent": true
   }
 }
