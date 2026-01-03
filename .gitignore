@@ -6,17 +6,15 @@ __pycache__/
 .Python
 env/
 venv/
-.venv/
 ENV/
 env.bak/
 venv.bak/
 
-# Database
+# БД
 *.db
-*.sqlite
 *.sqlite3
 
-# Environment variables
+# Переменные окружения
 .env
 .env.local
 .env.development.local
@@ -32,14 +30,14 @@ venv.bak/
 *.swp
 *.swo
 
-# Logs
+# Логи
 *.log
 logs/
 
-# OS
+# Операционные системы
 .DS_Store
 Thumbs.db
 
-# Temporary files
-*.tmp
-*.temp
+# Мини-приложение
+static/bundle.js
+static/bundle.css
