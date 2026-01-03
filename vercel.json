@@ -1,0 +1,55 @@
+{
+  "builds": [
+    {
+      "src": "api/bot.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "api/webapp.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "web/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/",
+      "dest": "/web/index.html"
+    },
+    {
+      "src": "/web/(.*)",
+      "dest": "/web/$1"
+    },
+    {
+      "src": "/bot",
+      "dest": "/api/bot.py"
+    },
+    {
+      "src": "/webapp",
+      "dest": "/api/webapp.py"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/bot.py"
+    }
+  ],
+  "env": {
+    "PYTHON_VERSION": "3.11"
+  },
+  "functions": {
+    "api/bot.py": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "api/webapp.py": {
+      "maxDuration": 30,
+      "memory": 512
+    }
+  },
+  "github": {
+    "enabled": true,
+    "silent": true
+  }
+}
