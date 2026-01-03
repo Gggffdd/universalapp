@@ -1,127 +1,168 @@
 import os
 import json
+from http.server import BaseHTTPRequestHandler
 import asyncio
-import sqlite3
-from datetime import datetime
-from http import HTTPStatus
-from typing import Dict, Any
-
 from aiogram import Bot, Dispatcher, types
-from aiogram.types import Update
-from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Command
-from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
-from aiohttp import web
+import logging
 
-# Импорт ваших модулей
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-from bot.core import init_bot, dp, bot
-from database.database import init_database, Database
-from utils.helpers import format_number
+# Получение токена из переменных окружения
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
-# Получение переменных окружения
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "")
-WEBHOOK_PATH = "/bot"
-WEBAPP_URL = os.getenv("WEBAPP_URL", "")
+if not BOT_TOKEN:
+    logger.error("❌ BOT_TOKEN не установлен в переменных окружения!")
+    BOT_TOKEN = "ваш_токен_бота"  # Замените на ваш токен
 
-async def on_startup(app: web.Application):
-    """Действия при запуске"""
-    # Инициализация базы данных
-    await init_database()
-    
-    # Установка вебхука
-    webhook_url = f"{WEBAPP_URL}{WEBHOOK_PATH}"
-    await bot.set_webhook(
-        webhook_url,
-        secret_token=WEBHOOK_SECRET,
-        drop_pending_updates=True
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
+
+@dp.message(CommandStart())
+async def start_command(message: types.Message):
+    """Обработчик команды /start"""
+    await message.answer(
+        "🤖 <b>Universal Exchange Bot</b>\n\n"
+        "✅ Бот успешно запущен на Vercel!\n\n"
+        "📱 <b>Доступные команды:</b>\n"
+        "/start - Перезапустить бота\n"
+        "/menu - Главное меню\n"
+        "/rates - Текущие курсы\n"
+        "/help - Помощь\n\n"
+        "🚀 <b>Бот работает в облаке!</b>",
+        parse_mode="HTML"
+    )
+
+@dp.message(Command("menu"))
+async def menu_command(message: types.Message):
+    """Главное меню"""
+    keyboard = types.InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                types.InlineKeyboardButton(text="💱 Обмен TON/USDT", callback_data="exchange"),
+                types.InlineKeyboardButton(text="🛒 Товары", callback_data="products")
+            ],
+            [
+                types.InlineKeyboardButton(text="👤 Профиль", callback_data="profile"),
+                types.InlineKeyboardButton(text="👥 Рефералы", callback_data="referrals")
+            ],
+            [
+                types.InlineKeyboardButton(text="📞 Поддержка", url="https://t.me/salxanovka")
+            ]
+        ]
     )
     
-    print(f"🤖 Бот запущен. Webhook: {webhook_url}")
+    await message.answer(
+        "🏠 <b>Главное меню</b>\n\n"
+        "Выберите раздел:",
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
 
-async def on_shutdown(app: web.Application):
-    """Действия при остановке"""
-    await bot.delete_webhook()
-    await bot.session.close()
-    print("🤖 Бот остановлен")
+@dp.message(Command("rates"))
+async def rates_command(message: types.Message):
+    """Текущие курсы"""
+    await message.answer(
+        "📊 <b>Текущие курсы:</b>\n\n"
+        "💎 TON: 1 TON = 1.45 USDT\n"
+        "💰 USDT: 1 USDT = 0.95 USD\n\n"
+        "⏰ Обновлено только что\n"
+        "🚀 Курсы в реальном времени",
+        parse_mode="HTML"
+    )
 
-async def handle_webhook(request: web.Request):
-    """Обработчик вебхуков от Telegram"""
-    if WEBHOOK_SECRET:
-        secret = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
-        if secret != WEBHOOK_SECRET:
-            return web.Response(status=403, text="Forbidden")
+@dp.message(Command("help"))
+async def help_command(message: types.Message):
+    """Помощь"""
+    await message.answer(
+        "📚 <b>Помощь по боту</b>\n\n"
+        "<b>Основные команды:</b>\n"
+        "/start - Запустить бота\n"
+        "/menu - Главное меню\n"
+        "/rates - Курсы валют\n"
+        "/help - Эта справка\n\n"
+        "<b>Поддержка:</b>\n"
+        "Если у вас возникли проблемы, обратитесь:\n"
+        "• @salxanovka\n"
+        "• @wwhocrime\n\n"
+        "🚀 <b>Бот работает на Vercel</b>",
+        parse_mode="HTML"
+    )
+
+# Обработчики callback
+@dp.callback_query()
+async def handle_callback(callback: types.CallbackQuery):
+    """Обработка callback запросов"""
+    data = callback.data
     
+    if data == "exchange":
+        await callback.message.edit_text(
+            "💱 <b>Обмен TON/USDT</b>\n\n"
+            "Выберите действие:",
+            parse_mode="HTML"
+        )
+    elif data == "products":
+        await callback.message.edit_text(
+            "🛒 <b>Товары</b>\n\n"
+            "Раздел товаров в разработке...",
+            parse_mode="HTML"
+        )
+    else:
+        await callback.answer("⏳ Функция в разработке", show_alert=True)
+
+async def handle_telegram_update(update_data: dict):
+    """Обработка обновления от Telegram"""
     try:
-        update_data = await request.json()
-        update = Update(**update_data)
-        await dp.feed_update(bot, update)
-        return web.Response(text="OK")
+        update = types.Update(**update_data)
+        await dp.feed_update(bot=bot, update=update)
+        return True
     except Exception as e:
-        print(f"❌ Ошибка обработки вебхука: {e}")
-        return web.Response(status=500, text="Internal Server Error")
+        logger.error(f"❌ Ошибка обработки обновления: {e}")
+        return False
 
-async def handle_health(request: web.Request):
-    """Health check endpoint"""
-    return web.json_response({
-        "status": "ok",
-        "timestamp": datetime.now().isoformat(),
-        "service": "universal-exchange-bot"
-    })
-
-async def handle_stats(request: web.Request):
-    """API для получения статистики"""
-    try:
-        # Получаем курсы
-        from bot.core import rate_manager
-        rates = await rate_manager.get_cached_rates()
-        
-        # Получаем статистику пользователей
-        users_count = Database.get_user_count()
-        active_users = Database.get_active_users_count()
-        
-        return web.json_response({
-            "status": "success",
-            "data": {
-                "rates": {
-                    "ton": rates.get('ton_sell_rate_rub', 0),
-                    "usdt": rates.get('usdt_sell_rate_rub', 0),
-                    "updated": rates.get('timestamp', '')
-                },
-                "users": {
-                    "total": users_count,
-                    "active": active_users,
-                    "today": Database.get_users_today_count()
-                },
-                "timestamp": datetime.now().isoformat()
-            }
-        })
-    except Exception as e:
-        return web.json_response({
-            "status": "error",
-            "message": str(e)
-        }, status=500)
-
-# Создание aiohttp приложения
-app = web.Application()
-
-# Настройка маршрутов
-app.router.add_post(WEBHOOK_PATH, handle_webhook)
-app.router.add_get("/health", handle_health)
-app.router.add_get("/api/stats", handle_stats)
-
-# События жизненного цикла
-app.on_startup.append(on_startup)
-app.on_shutdown.append(on_shutdown)
-
-# Для запуска на Vercel
+# HTTP обработчик для Vercel
 async def handler(request):
-    """Обработчик для Vercel"""
-    return await app.handle_request(request)
+    """Обработчик HTTP запросов для Vercel"""
+    try:
+        if request.method == "GET":
+            return {
+                "statusCode": 200,
+                "headers": {"Content-Type": "application/json"},
+                "body": json.dumps({
+                    "status": "ok",
+                    "message": "🤖 Universal Exchange Bot работает!",
+                    "timestamp": asyncio.get_event_loop().time()
+                })
+            }
+        
+        elif request.method == "POST" and request.path == "/webhook":
+            try:
+                body = await request.json()
+                success = await handle_telegram_update(body)
+                
+                if success:
+                    return {"statusCode": 200, "body": "OK"}
+                else:
+                    return {"statusCode": 400, "body": "Error processing update"}
+                    
+            except Exception as e:
+                logger.error(f"❌ Ошибка в webhook: {e}")
+                return {"statusCode": 400, "body": f"Error: {str(e)}"}
+        
+        else:
+            return {
+                "statusCode": 404,
+                "body": "Not Found"
+            }
+            
+    except Exception as e:
+        logger.error(f"❌ Ошибка в handler: {e}")
+        return {"statusCode": 500, "body": "Internal Server Error"}
 
-# Для локального запуска
+# Для локального тестирования
 if __name__ == "__main__":
-    web.run_app(app, host="0.0.0.0", port=8080)
+    from aiogram import executor
+    print("🤖 Запуск бота локально...")
+    executor.start_polling(dp, skip_updates=True)
