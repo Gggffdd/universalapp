@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Exchange</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 10px;
+            background: white;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .rate-info {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+        }
+        .balance {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💎 Universal Exchange</h1>
+        
+        <div class="rate-info">
+            <div>TON: <span id="ton-rate">-</span> ₽</div>
+            <div>USDT: <span id="usdt-rate">-</span> ₽</div>
+        </div>
+        
+        <div class="balance">
+            Баланс: <span id="balance">0</span> ₽
+        </div>
+        
+        <button class="btn" onclick="buyTon()">💎 Купить TON</button>
+        <button class="btn" onclick="sellTon()">💎 Продать TON</button>
+        <button class="btn" onclick="buyUsdt()">💰 Купить USDT</button>
+        <button class="btn" onclick="sellUsdt()">💰 Продать USDT</button>
+        <button class="btn" onclick="openProducts()">🛒 Товары</button>
+        <button class="btn" onclick="openProfile()">👤 Профиль</button>
+        <button class="btn" onclick="openSupport()">📞 Поддержка</button>
+    </div>
+
+    <script>
+        // Инициализация Telegram Web App
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.MainButton.setText('Открыть меню');
+        tg.MainButton.show();
+        
+        // Получение данных пользователя
+        const userId = tg.initDataUnsafe.user?.id;
+        const username = tg.initDataUnsafe.user?.username;
+        
+        // Загрузка данных
+        async function loadData() {
+            try {
+                const response = await fetch('/api/user/' + userId);
+                const data = await response.json();
+                document.getElementById('balance').textContent = data.balance;
+                document.getElementById('ton-rate').textContent = data.ton_rate;
+                document.getElementById('usdt-rate').textContent = data.usdt_rate;
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+            }
+        }
+        
+        // Функции для кнопок
+        function buyTon() {
+            tg.showPopup({
+                title: 'Покупка TON',
+                message: 'Введите сумму в рублях:',
+                buttons: [
+                    {id: 'cancel', type: 'cancel', text: 'Отмена'},
+                    {id: 'confirm', type: 'default', text: 'Продолжить'}
+                ]
+            });
+        }
+        
+        function openProducts() {
+            tg.showAlert('Раздел товаров скоро будет доступен в Mini App!');
+        }
+        
+        function openProfile() {
+            tg.openLink('https://t.me/' + tg.initDataUnsafe.bot.username + '?start=profile');
+        }
+        
+        function openSupport() {
+            tg.openLink('https://t.me/salxanovka');
+        }
+        
+        // Инициализация
+        tg.ready();
+        loadData();
+        
+        // Обработка сообщений от бота
+        tg.onEvent('message', (msg) => {
+            if (msg.text) {
+                tg.showAlert(msg.text);
+            }
+        });
+    </script>
+</body>
+</html>
